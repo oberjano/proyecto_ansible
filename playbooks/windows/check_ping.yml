@@ -1,0 +1,6 @@
+- name: Comprobar conectividad con el servidor Windows desde Ansible
+  hosts: windows
+  gather_facts: no
+  tasks:
+    - name: Ping
+      win_ping:

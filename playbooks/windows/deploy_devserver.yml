@@ -1,0 +1,57 @@
+- name: Instalación de Herramientas de Desarrollo y Complementarias en Windows
+  hosts: windows
+  gather_facts: no
+  vars:
+    playbook_version: "1.0.9"
+
+  pre_tasks:
+    - name: Instalar dependencia KB2919355
+      win_chocolatey:
+        name: KB2919355
+        state: present
+        ignore_checksums: yes
+
+  tasks:
+    - name: Instalar Herramientas de Desarrollo y Compilación
+      win_chocolatey:
+        name:
+          - git
+          - visualstudio2022buildtools
+          - dotnet-8.0-sdk
+          - nuget.commandline
+          - msbuild.communitytasks
+        state: present
+        ignore_checksums: yes
+        ignore_dependencies: no
+
+    - name: Instalar Herramientas de Pruebas y Analisis de Codigo
+      win_chocolatey:
+        name:
+          - nunit-console-runner
+          - sonarqube-scanner.portable
+        state: present
+        ignore_checksums: yes
+        ignore_dependencies: no
+
+    - name: Instalar Herramientas Complementarias
+      win_chocolatey:
+        name:
+          - nodejs
+          - yarn
+          - curl
+          - gradle
+          - nssm
+          - nunit-console-runner
+          - powershell-core
+          - msbuild.extensionpack
+          - msbuild-structured-log-viewer
+        state: present
+        ignore_checksums: yes
+        ignore_dependencies: no
+
+    - name: Instalar Editor Visual Studio
+      win_chocolatey:
+        name: visualstudio2022community
+        state: present
+        ignore_checksums: yes
+        ignore_dependencies: no

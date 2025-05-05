@@ -1,0 +1,76 @@
+- name: Instalación de herramientas esenciales para Windows
+  hosts: windows
+  gather_facts: no
+  vars:
+    playbook_version: "1.0.7"
+
+  pre_tasks:
+    - name: Verificar si Chocolatey está instalado
+      win_stat:
+        path: C:\ProgramData\chocolatey\choco.exe
+      register: chocolatey_installed
+
+    - name: Instalar Chocolatey si no está presente
+      win_shell: |
+        Set-ExecutionPolicy Bypass -Scope Process -Force;
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
+        iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+      args:
+        executable: powershell
+      when: not chocolatey_installed.stat.exists
+
+    - name: Instalar dependencia chocolatey-core.extension
+      win_chocolatey:
+        name: chocolatey-core.extension
+        state: present
+        ignore_checksums: yes
+
+  tasks:
+    - name: Monitorización y Rendimiento
+      win_chocolatey:
+        name:
+          - hwmonitor
+          - cpu-z
+        state: present
+
+    - name: Limpieza y Optimización
+      win_chocolatey:
+        name: ccleaner
+        ignore_checksums: yes
+        state: present
+
+    - name: Gestión de discos y Particiones
+      win_chocolatey:
+        name:
+          - crystaldiskinfo
+          - recuva
+        state: present
+
+    - name: Red y Seguridad
+      win_chocolatey:
+        name: wireshark
+        install_args: "--params /InstallWinPcap"
+        state: present
+
+    - name: Acceso Remoto y Administración
+      win_chocolatey:
+        name:
+          - putty.install
+          - anydesk
+        state: present
+
+    - name: Gestión de Archivos y Misceláneas
+      win_chocolatey:
+        name:
+          - 7zip.install
+          - winscp
+          - greenshot
+        state: present
+
+    - name: Exploradores de Internet
+      win_chocolatey:
+        name:
+          - firefox
+          - googlechrome
+          - opera
+        state: present
