@@ -1,0 +1,93 @@
+- name: Instalación de herramientas esenciales
+  hosts: linux
+  become: yes
+  vars:
+    playbook_version: "1.0.8"
+
+  pre_tasks:
+    - name: Habilitar el repositorio Universe
+      command: add-apt-repository -y universe
+      args:
+        creates: /etc/apt/sources.list.d/
+
+    - name: Actualizar la caché de apt
+      apt:
+        update_cache: yes
+
+  tasks:
+    - name: Instalar paquetes de edición de texto
+      apt:
+        name:
+          - nano
+          - vim
+        state: present
+
+    - name: Instalar paquetes de gestión
+      apt:
+        name:
+          - apt-utils
+          - curl
+          - wget
+        state: present
+
+    - name: Instalar paquetes de seguridad
+      apt:
+        name:
+          - ufw
+          - clamav
+          - clamav-daemon
+          - unattended-upgrades
+        state: present
+
+    - name: Instalar paquetes de monitorización y rendimiento
+      apt:
+        name:
+          - htop
+          - glances
+          - nmon
+        state: present
+
+    - name: Instalar herramientas de desarrollo y automatización
+      apt:
+        name: git
+        state: present
+
+    - name: Instalar herramientas de backup y almacenamiento
+      apt:
+        name:
+          - rsync
+          - borgbackup
+        state: present
+
+    - name: Instalar herramientas de redes y conectividad
+      apt:
+        name:
+          - nmap
+          - iftop
+          - net-tools
+        state: present
+
+    - name: Instalar herramientas de gestión de almacenamiento
+      apt:
+        name:
+          - lvm2
+          - smartmontools
+          - ncdu
+        state: present
+
+    - name: Instalar misceláneos
+      apt:
+        name:
+          - cron
+          - zip
+          - unzip
+          - mlocate
+          - terminator
+        state: present
+
+  post_tasks:
+    - name: Activar ufw
+      command: ufw --force enable
+
+    - name: Permitir tráfico ssh en ufw
+      command: ufw allow ssh

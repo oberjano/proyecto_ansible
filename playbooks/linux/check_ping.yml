@@ -1,0 +1,7 @@
+- name: Verificar conectividad con nodos Linux
+  hosts: linux
+  gather_facts: false
+
+  tasks:
+    - name: Hacer ping a los nodos
+      ansible.builtin.ping:

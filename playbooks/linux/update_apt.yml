@@ -1,0 +1,7 @@
+- name: Actualizar cache
+  hosts: linux
+  become: yes
+  tasks:
+    - name: Actualizar la cache de apt
+      apt:
+        update_cache: yes

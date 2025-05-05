@@ -1,0 +1,241 @@
+- name: Configurar Servidor Web con Apache, MySQL y PHP e instalar Wordpress
+  hosts: linux
+  become: yes
+  vars:
+    playbook_version: "1.0.15"
+
+  pre_tasks:
+    - name: Actualizar la caché de apt
+      apt:
+        update_cache: yes
+
+    - name: Instalar PyMySQL para MariaDB
+      apt:
+        name: python3-pymysql
+        state: present
+
+    - name: Descargar WP-CLI
+      get_url:
+        url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+        dest: /usr/local/bin/wp-cli.phar
+        mode: '0755'
+
+    - name: Mover y configurar WP-CLI
+      command: mv /usr/local/bin/wp-cli.phar /usr/local/bin/wp
+      args:
+        creates: /usr/local/bin/wp
+
+  tasks:
+    - name: Instalar Apache
+      apt:
+        name: apache2
+        state: present
+
+    - name: Instalar MariaDB Server
+      apt:
+        name: mariadb-server
+        state: present
+
+    - name: Instalar PHP y módulos adicionales
+      apt:
+        name:
+          - php
+          - php-mysql
+          - libapache2-mod-php
+          - php-cli
+          - php-curl
+          - php-gd
+          - php-mbstring
+          - php-xml
+          - php-zip
+        state: present
+
+    - name: Instalar phpMyAdmin
+      apt:
+        name: phpmyadmin
+        state: present
+
+  post_tasks:
+    - name: Configurar phpMyAdmin con Apache
+      file:
+        src: /etc/phpmyadmin/apache.conf
+        dest: /etc/apache2/conf-available/phpmyadmin.conf
+        state: link
+
+    - name: Habilitar configuración phpMyAdmin en Apache
+      command: a2enconf phpmyadmin
+
+    - name: Asegurar instalación de MariaDB sin intervención manual
+      mysql_user:
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        user: root
+        password: ""
+        host: localhost
+        state: present
+
+    - name: Eliminar usuarios anónimos
+      mysql_user:
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        user: ''
+        host_all: yes
+        state: absent
+
+    - name: Eliminar la base de datos de prueba
+      mysql_db:
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        name: test
+        state: absent
+
+    - name: Crear usuario admin con privilegios
+      mysql_user:
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        user: oliver.berjano1
+        password: "B7uswatch."
+        host: localhost
+        priv: '*.*:ALL,GRANT'
+        state: present
+
+    - name: Reiniciar Apache
+      systemd:
+        name: apache2
+        state: restarted
+
+    - name: Descargar WordPress
+      get_url:
+        url: https://wordpress.org/latest.tar.gz
+        dest: /tmp/wordpress.tar.gz
+
+    - name: Extraer WordPress
+      unarchive:
+        src: /tmp/wordpress.tar.gz
+        dest: /var/www/html/
+        remote_src: yes
+
+    - name: Cambiar nombre de carpeta WordPress
+      command: mv /var/www/html/wordpress /var/www/html/ignacioellacuria
+      args:
+        creates: /var/www/html/ignacioellacuria
+
+    - name: Establecer permisos para WordPress
+      file:
+        path: /var/www/html/ignacioellacuria
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        recurse: yes
+
+    - name: Crear base de datos para WordPress
+      mysql_db:
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        name: wordpress_db
+        state: present
+
+    - name: Crear usuario de WordPress en MySQL
+      mysql_user:
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        name: wp_user
+        password: "B7uswatch."
+        priv: 'wordpress_db.*:ALL'
+        host: localhost
+        state: present
+
+    - name: Copiar el archivo de configuración de ejemplo de WordPress
+      copy:
+        src: /var/www/html/ignacioellacuria/wp-config-sample.php
+        dest: /var/www/html/ignacioellacuria/wp-config.php
+        remote_src: yes
+
+    - name: Configurar base de datos en wp-config.php
+      replace:
+        path: /var/www/html/ignacioellacuria/wp-config.php
+        regexp: "{{ item.regexp }}"
+        replace: "{{ item.replace }}"
+      loop:
+        - { regexp: "database_name_here", replace: "wordpress_db" }
+        - { regexp: "username_here", replace: "wp_user" }
+        - { regexp: "password_here", replace: "B7uswatch." }
+
+    - name: Asegurar permisos adecuados sobre el directorio temporal de Ansible
+      file:
+        path: /var/www/.ansible
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Ejecutar instalación de WordPress como www-data
+      become: true
+      become_user: www-data
+      command: wp core install --url="http://localhost/ignacioellacuria" --title="IES Ignacio Ellacuria" --admin_user="oliver.berjano1" --admin_password="B3rj@n0." --admin_email="oliver.berjano1@educa.madrid.org" --path=/var/www/html/ignacioellacuria
+      args:
+        chdir: /var/www/html/ignacioellacuria
+
+    - name: Asegurar permisos de escritura sobre wp-config.php para www-data
+      file:
+        path: /var/www/html/ignacioellacuria/wp-config.php
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Instalar idioma Español en WordPress como www-data
+      become: true
+      become_user: www-data
+      command: wp language core install es_ES --path=/var/www/html/ignacioellacuria
+      args:
+        chdir: /var/www/html/ignacioellacuria
+
+    - name: Configurar WordPress para usar el idioma Español como www-data
+      become: true
+      become_user: www-data
+      command: wp config set WPLANG es_ES --path=/var/www/html/ignacioellacuria
+      args:
+        chdir: /var/www/html/ignacioellacuria
+
+    - name: Establecer permisos para wp-content
+      file:
+        path: /var/www/html/ignacioellacuria/wp-content
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        recurse: yes
+
+    - name: Restaurar permisos mas restrictivos sobre wp-config.php
+      file:
+        path: /var/www/html/ignacioellacuria/wp-config.php
+        owner: www-data
+        group: www-data
+        mode: '0440'
+
+    - name: Cambiar Dirección de WordPress (URL)
+      become_user: www-data
+      command: wp option update siteurl http://webserver01/ignacioellacuria --path=/var/www/html/ignacioellacuria
+      args:
+        chdir: /var/www/html/ignacioellacuria
+
+    - name: Cambiar Dirección del sitio (URL)
+      become_user: www-data
+      command: wp option update home http://webserver01/ignacioellacuria --path=/var/www/html/ignacioellacuria
+      args:
+        chdir: /var/www/html/ignacioellacuria
+
+    - name: Reiniciar Apache después de instalar WordPress
+      systemd:
+        name: apache2
+        state: restarted
+
+    - name: Permitir tráfico en el puerto 80/tcp (HTTP)
+      community.general.ufw:
+        rule: allow
+        port: '80'
+        proto: tcp
+
+    - name: Permitir tráfico en el puerto 443/tcp (HTTPS)
+      community.general.ufw:
+        rule: allow
+        port: '443'
+        proto: tcp
+
+    - name: Recargar ufw para aplicar cambios
+      command: ufw reload
