@@ -90,7 +90,7 @@
       mysql_user:
         login_unix_socket: /var/run/mysqld/mysqld.sock
         user: oliver.berjano1
-        password: "B7uswatch."
+        password: "my_password"
         host: localhost
         priv: '*.*:ALL,GRANT'
         state: present
@@ -135,7 +135,7 @@
       mysql_user:
         login_unix_socket: /var/run/mysqld/mysqld.sock
         name: wp_user
-        password: "B7uswatch."
+        password: "my_password"
         priv: 'wordpress_db.*:ALL'
         host: localhost
         state: present
@@ -154,7 +154,7 @@
       loop:
         - { regexp: "database_name_here", replace: "wordpress_db" }
         - { regexp: "username_here", replace: "wp_user" }
-        - { regexp: "password_here", replace: "B7uswatch." }
+        - { regexp: "password_here", replace: "my_password" }
 
     - name: Asegurar permisos adecuados sobre el directorio temporal de Ansible
       file:
